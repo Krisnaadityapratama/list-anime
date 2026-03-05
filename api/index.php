@@ -57,7 +57,7 @@ function supabase_request($method, $endpoint, $data = null, $headers = []) {
 
     $response = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    // curl_close($ch);
 
     if ($code >= 400) {
         return ['error' => "Gagal ($code): " . $response];
@@ -87,7 +87,7 @@ function upload_cover($file) {
     $response = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curl_error = curl_error($ch);  // tambah ini untuk debug
-    curl_close($ch);
+    // curl_close($ch);
 
     // Debug: tampilkan di halaman kalau gagal (untuk test)
     if ($code != 200) {
