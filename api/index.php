@@ -252,21 +252,27 @@ if (is_logged_in()) {
 <div class="container">
 
     <!-- Info login & form login kecil (sama) -->
-            <?php if (!is_logged_in()): ?>
-                <div class="alert alert-info mb-4 border-0 shadow-sm" style="background: #1e293b; color: #94a3b8; border-radius: 12px;">
-                    <div class="d-flex align-items-center justify-content-between">
+        <?php if (!is_logged_in()): ?>
+            <div class="alert alert-info mb-4 border-0 shadow" style="background: #1e293b; color: #94a3b8; border-radius: 12px; padding: 1.25rem;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi bi-eye fs-4 opacity-75"></i>
                         <div>
                             <strong>Mode Read-Only</strong>
-                            <div class="small opacity-75 mt-1">Anda bisa melihat daftar anime favorit saya.</div>
+                            <div class="small opacity-75 mt-1">
+                                Anda bisa melihat daftar anime favorit saya. Untuk edit/tambah/hapus, login admin.
+                            </div>
                         </div>
-                        <a href="login.php" class="btn btn-outline-primary btn-sm px-3">
-                            <i class="bi bi-box-arrow-in-right me-1"></i> Login Admin
-                        </a>
                     </div>
+                    <button class="btn btn-outline-primary btn-sm px-3 py-2" 
+                            data-bs-toggle="modal" data-bs-target="#loginModal">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Login Admin
+                    </button>
                 </div>
-            <?php else: ?>
-            <div class="alert alert-success mb-4 shadow-lg border-0 fade show" role="alert" 
-                style="background: linear-gradient(135deg, #2c7a2c, #1e5128); color: white; border-radius: 12px; transition: all 0.3s ease;">
+            </div>
+        <?php else: ?>
+            <!-- Bagian login sukses tetap -->
+            <div class="alert alert-success mb-4 shadow border-0" style="background: linear-gradient(135deg, #065f46, #047857); color: white; border-radius: 12px; padding: 1rem 1.5rem;">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center gap-3">
                         <i class="bi bi-shield-check-fill fs-4"></i>
@@ -275,10 +281,11 @@ if (is_logged_in()) {
                             <small class="d-block opacity-75">Akses penuh diaktifkan</small>
                         </div>
                     </div>
-                    <a href="#" class="btn btn-outline-danger btn-sm" onclick="confirmLogout()">Logout</a>
+                    <a href="?logout=1" class="btn btn-outline-light btn-sm px-3" onclick="return confirm('Yakin ingin logout?')">
+                        <i class="bi bi-box-arrow-right me-1"></i> Logout
+                    </a>
                 </div>
             </div>
-
             <!-- Optional: animasi fade-in via CSS tambahan -->
             <style>
                 .alert-success.fade.show {
@@ -631,6 +638,5 @@ function confirmLogout() {
         </div>
     </div>
 </div>
-
 </body>
 </html>
