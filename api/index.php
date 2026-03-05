@@ -232,6 +232,18 @@ if (is_logged_in()) {
         .modal-content { background: var(--card); color: var(--text); }
         .cover-img { max-width: 100px; height: auto; }
 
+        /* login modal tweaks */
+        #loginModal .modal-header {
+            padding-top: 1.5rem;
+            padding-bottom: 0.5rem;
+        }
+        #loginModal .modal-header i {
+            color: #0d6efd;
+        }
+        #loginModal .form-control {
+            border-radius: 8px;
+        }
+
         .swal2-dark-popup {
         background: #1a1a2e !important;
         color: #eee !important;
@@ -281,7 +293,7 @@ if (is_logged_in()) {
                             <small class="d-block opacity-75">Akses penuh diaktifkan</small>
                         </div>
                     </div>
-                    <a href="?logout=1" class="btn btn-outline-light btn-sm px-3" onclick="return confirm('Yakin ingin logout?')">
+                    <a href="?logout=1" class="btn btn-outline-light btn-sm px-3 logout-link">
                         <i class="bi bi-box-arrow-right me-1"></i> Logout
                     </a>
                 </div>
@@ -343,6 +355,26 @@ if (is_logged_in()) {
                     }, 5000); // 5000 ms = 5 detik (bisa ubah jadi 3000 untuk 3 detik)
                 }
             });
+
+            // logout sweet alert
+            const logoutLink = document.querySelector('.logout-link');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Yakin ingin logout?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya',
+                        cancelButtonText: 'Tidak',
+                        customClass: { popup: 'swal2-dark-popup' }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location = logoutLink.href;
+                        }
+                    });
+                });
+            }
         </script>
     <?php endif; ?>
     <?php if (isset($error)): ?>
@@ -614,25 +646,29 @@ function confirmLogout() {
 <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-dark text-white border-0 shadow-lg" style="border-radius: 16px;">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title" id="loginModalLabel">Login Admin</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header border-0 justify-content-center">
+                <div class="text-center w-100">
+                    <i class="bi bi-lock-fill fs-1 mb-2"></i>
+                    <h5 class="modal-title" id="loginModalLabel">Masuk sebagai Admin</h5>
+                    <div class="small text-muted">Gunakan kredensial untuk mengelola daftar anime</div>
+                </div>
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body px-4">
                 <form method="post">
                     <input type="hidden" name="action" value="login">
                     <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" name="username" id="username" class="form-control bg-secondary text-white border-0" placeholder="krisna" required autofocus>
+                        <label for="username" class="form-label">Nama Pengguna</label>
+                        <input type="text" name="username" id="username" class="form-control bg-secondary text-white border-0" placeholder="Masukkan username" required autofocus>
                     </div>
                     <div class="mb-4">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" name="password" id="password" class="form-control bg-secondary text-white border-0" placeholder="••••••••" required>
+                        <label for="password" class="form-label">Kata Sandi</label>
+                        <input type="password" name="password" id="password" class="form-control bg-secondary text-white border-0" placeholder="Masukkan password" required>
                     </div>
                     <?php if ($login_error): ?>
                         <div class="alert alert-danger small mb-3"><?= $login_error ?></div>
                     <?php endif; ?>
-                    <button type="submit" class="btn btn-primary w-100 py-2">Login</button>
+                    <button type="submit" class="btn btn-primary w-100 py-2">Masuk</button>
                 </form>
             </div>
         </div>
