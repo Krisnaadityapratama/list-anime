@@ -393,6 +393,102 @@ if (is_logged_in()) {
         .swal2-dark-popup .swal2-icon {
             color: #ffc107 !important;
         }
+
+        /* Mobile Card View */
+        @media (max-width: 768px) {
+            .table-responsive {
+                display: none; /* Sembunyikan tabel di mobile */
+            }
+
+            .mobile-cards {
+                display: block;
+                margin-top: 1rem;
+            }
+
+            .anime-card {
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                margin-bottom: 1rem;
+                overflow: hidden;
+                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .anime-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+            }
+
+            .card-header {
+                display: flex;
+                align-items: center;
+                padding: 1rem;
+                background: rgba(0, 0, 0, 0.1);
+            }
+
+            .card-cover {
+                width: 80px;
+                height: 80px;
+                object-fit: cover;
+                border-radius: 10px;
+                margin-right: 1rem;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .card-title {
+                font-size: 1.1rem;
+                font-weight: 600;
+                margin: 0;
+                color: var(--text);
+            }
+
+            .card-details {
+                padding: 1rem;
+                display: none;
+                background: rgba(255, 255, 255, 0.02);
+                border-top: 1px solid var(--border);
+            }
+
+            .card-details.expanded {
+                display: block;
+            }
+
+            .detail-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 0.5rem;
+                font-size: 0.9rem;
+            }
+
+            .detail-label {
+                color: var(--muted);
+                font-weight: 500;
+            }
+
+            .detail-value {
+                color: var(--text);
+            }
+
+            .card-actions {
+                display: flex;
+                gap: 0.5rem;
+                margin-top: 1rem;
+            }
+
+            .btn-mobile {
+                flex: 1;
+                padding: 0.5rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-cards {
+                display: none; /* Sembunyikan card di desktop */
+            }
+        }
     </style>
 </head>
 <body class="p-4">
@@ -616,6 +712,95 @@ if (is_logged_in()) {
     </div>
     </div> <!-- /.table-scroll -->
 
+    <!-- Mobile Card View -->
+    <div class="mobile-cards">
+        <?php foreach ($animes as $a):
+            $ep = $a['last_ep'] && $a['total_ep'] ? $a['last_ep'].'/'.$a['total_ep'] : ($a['last_ep'] ?: '-');
+            $statusClass = match(strtolower($a['status'] ?? '')) {
+                'watching' => 'bg-success', 'completed' => 'bg-primary', 'dropped' => 'bg-danger',
+                'on hold' => 'bg-warning', default => 'bg-secondary'
+            };
+            $update_time = $a['updated_at'] ?? $a['created_at'];
+        ?>
+        <div class="anime-card" onclick="toggleCardDetails(this)">
+            <div class="card-header">
+                <?php if ($a['cover_url']): ?>
+                    <img src="<?= htmlspecialchars($a['cover_url']) ?>" alt="Cover" class="card-cover">
+                <?php else: ?>
+                    <div class="card-cover" style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: var(--muted);">
+                        <i class="bi bi-image fs-2"></i>
+                    </div>
+                <?php endif; ?>
+                <h5 class="card-title"><?= htmlspecialchars($a['title']) ?></h5>
+            </div>
+            <div class="card-details">
+                <div class="detail-row">
+                    <span class="detail-label">Link:</span>
+                    <span class="detail-value">
+                        <?php if ($a['link']): ?>
+                            <a href="<?= htmlspecialchars($a['link']) ?>" target="_blank" class="btn btn-sm btn-outline-light">
+                                <i class="bi bi-play-circle"></i> Nonton
+                            </a>
+                        <?php else: ?>-<?php endif; ?>
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Episode:</span>
+                    <span class="detail-value"><?= htmlspecialchars($ep) ?></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value"><span class="badge <?= $statusClass ?>"><?= htmlspecialchars($a['status'] ?: '-') ?></span></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Rating:</span>
+                    <span class="detail-value"><?= htmlspecialchars($a['rating'] ?: '-') ?></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Genre:</span>
+                    <span class="detail-value"><?= htmlspecialchars($a['genre'] ?: '-') ?></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Update:</span>
+                    <span class="detail-value"><?= date('d/m/Y H:i', strtotime($update_time)) ?></span>
+                </div>
+                <?php if ($a['notes']): ?>
+                <div class="detail-row">
+                    <span class="detail-label">Sinopsis:</span>
+                    <span class="detail-value">
+                        <?php
+                        $notes = $a['notes'];
+                        if (strlen($notes) > 100) {
+                            $short = htmlspecialchars(substr($notes, 0, 100)) . '...';
+                            $full = htmlspecialchars($notes);
+                            echo "<span class='short-notes'>$short <a href='#' onclick='event.stopPropagation(); toggleNotes(this)' data-full=\"$full\">see more</a></span>";
+                            echo "<span class='full-notes' style='display:none;'>$full <a href='#' onclick='event.stopPropagation(); toggleNotes(this)' data-short=\"$short\">see less</a></span>";
+                        } else {
+                            echo htmlspecialchars($notes);
+                        }
+                        ?>
+                    </span>
+                </div>
+                <?php endif; ?>
+                <?php if (is_logged_in()): ?>
+                <div class="card-actions">
+                    <button class="btn btn-warning btn-mobile" onclick="event.stopPropagation(); editAnime(<?= json_encode($a, JSON_UNESCAPED_UNICODE) ?>)">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <form method="post" class="d-inline" onsubmit="event.stopPropagation(); return confirm('Yakin hapus <?= addslashes($a['title']) ?>?')">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="delete_id" value="<?= htmlspecialchars($a['id']) ?>">
+                        <button type="submit" class="btn btn-danger btn-mobile">
+                            <i class="bi bi-trash"></i> Hapus
+                        </button>
+                    </form>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+
     <?php if (empty($animes)): ?>
         <div class="text-center py-5">
             <h4>Belum ada anime/donghua di list 😢</h4>
@@ -758,6 +943,14 @@ document.getElementById('filterGenre')?.addEventListener('keypress', function(e)
         applySortFilter();
     }
 });
+
+// Mobile card toggle
+function toggleCardDetails(card) {
+    const details = card.querySelector('.card-details');
+    if (details) {
+        details.classList.toggle('expanded');
+    }
+}
 
 // Toggle notes function (sama)
 function toggleNotes(link) {
