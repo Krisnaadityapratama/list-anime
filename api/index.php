@@ -106,13 +106,29 @@ function upload_cover($file) {
 }
 
 // ================== FUNGSI CRUD ==================
-function get_animes() {
-    $data = supabase_request('GET', 'animes?select=*&is_deleted=eq.false&order=title.asc');
+function get_animes($sortBy = 'title', $direction = 'asc', $filterGenre = '') {
+    $allowedSort = ['title', 'genre', 'updated_at', 'rating', 'status'];
+    if (!in_array($sortBy, $allowedSort, true)) {
+        $sortBy = 'title';
+    }
+    $direction = strtolower($direction) === 'desc' ? 'desc' : 'asc';
+
+    $endpoint = 'animes?select=*&is_deleted=eq.false';
+    if ($filterGenre) {
+        $encoded = rawurlencode($filterGenre);
+        $endpoint .= "&genre=ilike.*{$encoded}*";
+    }
+    $endpoint .= "&order={$sortBy}.{$direction}";
+
+    $data = supabase_request('GET', $endpoint);
     return is_array($data) ? $data : [];
 }
 
-// Load data
-$animes = get_animes();
+// Load data (support sorting + filtering)
+$current_sort = $_GET['sort'] ?? 'title';
+$current_dir = $_GET['dir'] ?? 'asc';
+$current_genre = trim($_GET['genre'] ?? '');
+$animes = get_animes($current_sort, $current_dir, $current_genre);
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 // Proteksi aksi tulis hanya untuk yang login
@@ -224,46 +240,165 @@ if (is_logged_in()) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        /* Sama seperti sebelumnya */
-        :root { --bg: #0f0f23; --text: #eee; --card: #1a1a2e; }
-        [data-bs-theme="light"] { --bg: #f8f9fa; --text: #212529; --card: #ffffff; }
-        body { background: var(--bg); color: var(--text); }
-        .table { --bs-table-bg: var(--card); --bs-table-color: var(--text); }
-        .modal-content { background: var(--card); color: var(--text); }
-        .cover-img { max-width: 100px; height: auto; }
+        :root {
+            --bg: #0b1220;
+            --text: #e6edf8;
+            --card: rgba(15, 22, 48, 0.92);
+            --card-2: rgba(20, 30, 55, 0.82);
+            --border: rgba(255, 255, 255, 0.12);
+            --accent: #667eea;
+            --accent-2: #22c55e;
+            --muted: rgba(230, 237, 248, 0.7);
+        }
 
-        /* login modal tweaks */
-        #loginModal .modal-header {
-            padding-top: 1.5rem;
-            padding-bottom: 0.5rem;
+        [data-bs-theme="light"] {
+            --bg: #f8f9fa;
+            --text: #212529;
+            --card: #ffffff;
+            --border: rgba(0, 0, 0, 0.08);
+            --muted: rgba(33, 37, 41, 0.7);
         }
-        #loginModal .modal-header i {
-            color: #0d6efd;
+
+        body {
+            background: radial-gradient(circle at 20% 10%, rgba(102, 126, 234, 0.35), transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.22), transparent 60%),
+                        var(--bg);
+            color: var(--text);
+            min-height: 100vh;
         }
+
+        .container {
+            max-width: 1040px;
+        }
+
+        .table-responsive {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 1rem;
+            box-shadow: 0 18px 35px rgba(0, 0, 0, 0.25);
+        }
+
+        .table {
+            --bs-table-bg: transparent;
+            --bs-table-color: var(--text);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .table thead th {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .table td,
+        .table th {
+            vertical-align: middle;
+        }
+
+        .cover-img {
+            max-width: 110px;
+            height: auto;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.3);
+        }
+
+        #searchRow {
+            background: var(--card-2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+        }
+
+        #search {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: var(--text);
+        }
+
+        #search::placeholder {
+            color: var(--muted);
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            border: none;
+        }
+
+        .btn-warning {
+            background: rgba(255, 198, 65, 0.95);
+            border: 1px solid rgba(255, 198, 65, 0.6);
+            color: #0f172a;
+        }
+
+        .btn-warning:hover {
+            background: rgba(255, 205, 90, 0.95);
+        }
+
+        .btn-info {
+            background: rgba(38, 198, 218, 0.85);
+            border: none;
+        }
+
+        .btn-info:hover {
+            background: rgba(38, 198, 218, 1);
+        }
+
+        .alert {
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .alert a {
+            color: inherit;
+            text-decoration: underline;
+        }
+
+        .modal-content {
+            background: var(--card);
+            color: var(--text);
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
         #loginModal .form-control {
-            border-radius: 8px;
+            border-radius: 10px;
         }
 
         .swal2-dark-popup {
-        background: #1a1a2e !important;
-        color: #eee !important;
-        }
-        .swal2-dark-popup .swal2-title {
-            color: #fff !important;
-        }
-        .swal2-dark-popup .swal2-html-container {
-            color: #ddd !important;
-        }
-        .swal2-dark-popup .swal2-icon {
-            color: #ffc107 !important; /* kuning untuk icon question */
+            background: var(--card) !important;
+            color: var(--text) !important;
         }
 
+        .swal2-dark-popup .swal2-title {
+            color: var(--text) !important;
+        }
+
+        .swal2-dark-popup .swal2-html-container {
+            color: var(--muted) !important;
+        }
+
+        .swal2-dark-popup .swal2-icon {
+            color: #ffc107 !important;
+        }
     </style>
 </head>
 <body class="p-4">
 <div class="container">
-
-    <!-- Info login & form login kecil (sama) -->
+    <div class="sticky-header">
+        <!-- Info login & form login kecil (sama) -->
         <?php if (!is_logged_in()): ?>
             <div class="alert alert-info mb-4 border-0 shadow" style="background: #1e293b; color: #94a3b8; border-radius: 12px; padding: 1.25rem;">
                 <div class="d-flex align-items-center justify-content-between">
@@ -310,33 +445,31 @@ if (is_logged_in()) {
             </style>
         <?php endif; ?>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="bi bi-tv"></i> AsiaAnimelist</h1>
-        <?php if (is_logged_in()): ?>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="bi bi-tv"></i> AsiaAnimelist</h1>
             <div class="d-flex gap-2 align-items-center">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="darkModeToggle" checked>
                     <label class="form-check-label" for="darkModeToggle">Dark Mode</label>
                 </div>
-                <a href="?action=export_csv" class="btn btn-info btn-sm"><i class="bi bi-download"></i> Export CSV</a>
-                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#animeModal" onclick="resetModal()">
-                    <i class="bi bi-plus-lg"></i> Tambah
-                </button>
+                <a href="https://saweria.co/Bangkrisna" target="_blank" class="btn btn-warning btn-sm">
+                    <i class="bi bi-heart-fill"></i> Donasi (Saweria)
+                </a>
+                <?php if (is_logged_in()): ?>
+                    <a href="?action=export_csv" class="btn btn-info btn-sm"><i class="bi bi-download"></i> Export CSV</a>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#animeModal" onclick="resetModal()">
+                        <i class="bi bi-plus-lg"></i> Tambah
+                    </button>
+                <?php endif; ?>
             </div>
-        <?php else: ?>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="darkModeToggle" checked>
-                <label class="form-check-label" for="darkModeToggle">Dark Mode</label>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <?php if (isset($_GET['success'])): ?>
-        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 shadow-sm" role="alert" id="successAlert">
-            <i class="bi bi-check-circle-fill fs-5"></i>
-            <?= htmlspecialchars($_GET['msg']) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
+
+        <?php if (isset($_GET['success'])): ?>
+            <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 shadow-sm" role="alert" id="successAlert">
+                <i class="bi bi-check-circle-fill fs-5"></i>
+                <?= htmlspecialchars($_GET['msg']) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
 
         <!-- Auto-dismiss setelah 5 detik -->
         <script>
@@ -381,11 +514,29 @@ if (is_logged_in()) {
         <div class="alert alert-danger"><?= $error ?></div>
     <?php endif; ?>
 
-    <div class="mb-3">
-        <input type="text" id="search" class="form-control" placeholder="Cari judul anime...">
+    <div class="row mb-3 g-2" id="searchRow">
+        <div class="col-md-4">
+            <input type="text" id="search" class="form-control" placeholder="Cari judul anime...">
+        </div>
+        <div class="col-md-8 d-flex flex-wrap gap-2">
+            <select id="sortSelect" class="form-select w-auto">
+                <option value="title" <?= $current_sort === 'title' ? 'selected' : '' ?>>Urutkan: Judul</option>
+                <option value="genre" <?= $current_sort === 'genre' ? 'selected' : '' ?>>Urutkan: Genre</option>
+                <option value="updated_at" <?= $current_sort === 'updated_at' ? 'selected' : '' ?>>Urutkan: Update</option>
+                <option value="rating" <?= $current_sort === 'rating' ? 'selected' : '' ?>>Urutkan: Rating</option>
+            </select>
+            <select id="dirSelect" class="form-select w-auto">
+                <option value="asc" <?= $current_dir === 'asc' ? 'selected' : '' ?>>A–Z / Naik</option>
+                <option value="desc" <?= $current_dir === 'desc' ? 'selected' : '' ?>>Z–A / Turun</option>
+            </select>
+            <input type="text" id="filterGenre" class="form-control flex-grow-1" placeholder="Filter genre (anime, donghua..." value="<?= htmlspecialchars($current_genre) ?>">
+            <button class="btn btn-outline-light" id="applySortFilter">Terapkan</button>
+        </div>
     </div>
+    </div> <!-- /.sticky-header -->
 
-    <div class="table-responsive">
+    <div class="table-scroll">
+        <div class="table-responsive">
         <table class="table table-hover table-striped" id="animeTable">
             <thead class="table-dark">
                 <tr>
@@ -463,6 +614,7 @@ if (is_logged_in()) {
             </tbody>
         </table>
     </div>
+    </div> <!-- /.table-scroll -->
 
     <?php if (empty($animes)): ?>
         <div class="text-center py-5">
@@ -573,6 +725,38 @@ document.getElementById('search')?.addEventListener('keyup', function() {
     document.querySelectorAll('#animeTable tbody tr').forEach(row => {
         row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
     });
+});
+
+// Sort + filter by genre (reload page with query params)
+function applySortFilter() {
+    const params = new URLSearchParams(window.location.search);
+    const sort = document.getElementById('sortSelect')?.value;
+    const dir = document.getElementById('dirSelect')?.value;
+    const genre = document.getElementById('filterGenre')?.value.trim();
+
+    if (sort) params.set('sort', sort);
+    if (dir) params.set('dir', dir);
+    if (genre) {
+        params.set('genre', genre);
+    } else {
+        params.delete('genre');
+    }
+
+    window.location.search = params.toString();
+}
+
+document.getElementById('sortSelect')?.addEventListener('change', applySortFilter);
+document.getElementById('dirSelect')?.addEventListener('change', applySortFilter);
+document.getElementById('applySortFilter')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    applySortFilter();
+});
+
+document.getElementById('filterGenre')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        applySortFilter();
+    }
 });
 
 // Toggle notes function (sama)
